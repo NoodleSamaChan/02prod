@@ -1,12 +1,12 @@
 use sqlx::{PgPool};
 use zer02prod::{configuration::get_configuration, startup::run};
+use zer02prod::telemetry::{get_subscriber, init_subscriber};
 use std::net::TcpListener;
-use env_logger::Env;
 
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
-    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
-    
+    let subscriber = get_subscriber("zer02prod".into(), "info".into());
+    init_subscriber(subscriber);
     let configuration = get_configuration().expect("Failed to read configuration");
     let connection = PgPool::connect(&configuration.database.connection_string())
         .await
