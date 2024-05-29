@@ -1,10 +1,10 @@
-use sqlx::{PgConnection, Connection, PgPool, Executor};
-use uuid::Uuid;
+use once_cell::sync::Lazy;
+use sqlx::{Connection, Executor, PgConnection, PgPool};
 use std::net::TcpListener;
+use uuid::Uuid;
 use zer02prod::configuration::{get_configuration, DatabaseSettings};
 use zer02prod::startup::run;
 use zer02prod::telemetry::{get_subscriber, init_subscriber};
-use once_cell::sync::Lazy;
 
 static TRACING: Lazy<()> = Lazy::new(|| {
     let default_filter_level = "info".to_string();
@@ -19,15 +19,14 @@ static TRACING: Lazy<()> = Lazy::new(|| {
 });
 
 pub struct TestApp {
-    pub address : String,
+    pub address: String,
     pub db_pool: PgPool,
 }
 
 pub async fn configure_database(config: &DatabaseSettings) -> PgPool {
-    let mut connection = PgConnection::connect_with(&config.without_db()
-    )
-    .await
-    .expect("Failed to connect to Postgres");
+    let mut connection = PgConnection::connect_with(&config.without_db())
+        .await
+        .expect("Failed to connect to Postgres");
 
     connection
         .execute(format!(r#"CREATE DATABASE "{}";"#, config.database_name).as_str())
@@ -51,7 +50,7 @@ async fn spawn_app() -> TestApp {
     let listener = TcpListener::bind("127.0.0.1:0").expect("Failed to bind random port.");
     let port = listener.local_addr().unwrap().port();
     let address = format!("http://127.0.0.1:{}", port);
-    
+
     let mut configuration = get_configuration().expect("Failed to read configuration.");
     configuration.database.database_name = Uuid::new_v4().to_string();
     let connection_pool = configure_database(&configuration.database).await;
@@ -60,10 +59,9 @@ async fn spawn_app() -> TestApp {
     let _ = tokio::spawn(server);
     TestApp {
         address,
-        db_pool : connection_pool,
+        db_pool: connection_pool,
     }
 }
-
 
 #[tokio::test]
 async fn health_check_works() {
@@ -103,8 +101,6 @@ async fn subscribe_returns_a_200_for_valid_form_data() {
 
     assert_eq!(saved.email, "ursula_le_guin@gmail.com");
     assert_eq!(saved.name, "le guin");
-
-
 }
 
 #[tokio::test]
@@ -134,5 +130,4 @@ async fn subscribe_returns_a_400_when_data_is_missing() {
             error_message
         );
     }
-
 }

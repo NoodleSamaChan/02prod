@@ -1,8 +1,8 @@
 use secrecy::{ExposeSecret, Secret};
-use sqlx::postgres::{PgConnectOptions, PgSslMode};
-use std::convert::{TryFrom, TryInto};
-use sqlx::ConnectOptions;
 use serde_aux::field_attributes::deserialize_number_from_string;
+use sqlx::postgres::{PgConnectOptions, PgSslMode};
+use sqlx::ConnectOptions;
+use std::convert::{TryFrom, TryInto};
 
 #[derive(serde::Deserialize)]
 pub struct Settings {
@@ -69,8 +69,8 @@ pub fn get_configuration() -> Result<Settings, config::ConfigError> {
         ))
         .add_source(
             config::Environment::with_prefix("APP")
-            .prefix_separator("_")
-            .separator("__")
+                .prefix_separator("_")
+                .separator("__"),
         )
         .build()?;
 
