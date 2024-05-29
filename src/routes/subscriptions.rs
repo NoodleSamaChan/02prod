@@ -1,4 +1,4 @@
-use actix_web::{web::{self, trace}, HttpResponse};
+use actix_web::{web::{self}, HttpResponse};
 use chrono:: Utc;
 use sqlx::PgPool;
 use uuid::Uuid;

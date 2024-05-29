@@ -1,5 +1,4 @@
-use secrecy::ExposeSecret;
-use sqlx::PgPool;
+use sqlx::postgres::PgPoolOptions;
 use std::net::TcpListener;
 use zer02prod::telemetry::{get_subscriber, init_subscriber};
 use zer02prod::{configuration::get_configuration, startup::run};
@@ -11,8 +10,8 @@ async fn main() -> Result<(), std::io::Error> {
 
     let configuration = get_configuration().expect("Failed to read configuration");
     let connection =
-        PgPool::connect_lazy(&configuration.database.connection_string().expose_secret())
-            .expect("Failed to create Postgres connection pool.");
+        PgPoolOptions::new()
+            .connect_lazy_with(configuration.database.with_db());
 
     let address = format!(
         "{}:{}",
