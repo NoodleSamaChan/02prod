@@ -27,6 +27,7 @@ tracing-actix-web = "0.7"
 cargo-chef = "0.1.67"
 serde-aux = "4"
 unicode-segmentation = "1.7.1"
+validator = "0.16"
 
 [dev-dependencies]
 reqwest = "0.11"
