@@ -1,3 +1,4 @@
+use crate::domain::{NewSubscriber, SubscriberEmail, SubscriberName};
 use actix_web::{
     web::{self},
     HttpResponse,
@@ -6,7 +7,6 @@ use chrono::Utc;
 use sqlx::PgPool;
 use tracing::subscriber;
 use uuid::Uuid;
-use crate::domain::{NewSubscriber, SubscriberEmail, SubscriberName};
 
 #[derive(serde::Deserialize)]
 pub struct FormData {
@@ -35,7 +35,6 @@ impl TryFrom<FormData> for NewSubscriber {
 )]
 
 pub async fn subscribe(form: web::Form<FormData>, pool: web::Data<PgPool>) -> HttpResponse {
-
     let new_subscriber = match form.0.try_into() {
         Ok(form) => form,
         Err(_) => return HttpResponse::BadRequest().finish(),
@@ -51,7 +50,10 @@ pub async fn subscribe(form: web::Form<FormData>, pool: web::Data<PgPool>) -> Ht
     skip(new_subscriber, pool)
 )]
 
-pub async fn insert_subscriber(pool: &PgPool, new_subscriber: &NewSubscriber) -> Result<(), sqlx::Error> {
+pub async fn insert_subscriber(
+    pool: &PgPool,
+    new_subscriber: &NewSubscriber,
+) -> Result<(), sqlx::Error> {
     sqlx::query!(
         r#"
         INSERT INTO subscriptions (id, email, name, subscribed_at)
