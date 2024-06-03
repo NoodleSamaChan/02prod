@@ -4,4 +4,4 @@ database:
   require_ssl: true  
 email_client:
   base_url: "https://api.postmarkapp.com"
-  sender_email: "test@dockleafs.com"
+  sender_email: "kaio.ishaq@dockleafs.com"
