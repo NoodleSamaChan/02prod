@@ -1,9 +1,7 @@
 use once_cell::sync::Lazy;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
-use std::net::TcpListener;
 use uuid::Uuid;
 use zer02prod::configuration::{get_configuration, DatabaseSettings};
-use zer02prod::email_client::EmailClient;
 use zer02prod::startup::{get_connection_pool, Application};
 use zer02prod::telemetry::{get_subscriber, init_subscriber};
 
@@ -22,6 +20,18 @@ static TRACING: Lazy<()> = Lazy::new(|| {
 pub struct TestApp {
     pub address: String,
     pub db_pool: PgPool,
+}
+
+impl TestApp {
+    pub async fn post_subscriptions(&self, body: String) -> reqwest::Response {
+        reqwest::Client::new()
+            .post(&format!("{}/subscriptions", &self.address))
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .body(body)
+            .send()
+            .await
+            .expect("Failed to execute request.")
+    }
 }
 
 async fn configure_database(config: &DatabaseSettings) -> PgPool {
