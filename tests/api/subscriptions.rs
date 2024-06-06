@@ -20,8 +20,6 @@ async fn subscribe_returns_a_200_for_valid_form_data() {
 
     // Assert
     assert_eq!(200, response.status().as_u16());
-
-    
 }
 
 #[tokio::test]
@@ -46,7 +44,7 @@ async fn subscribe_persists_the_new_subscriber() {
     assert_eq!(saved.email, "ursula_le_guin@gmail.com");
     assert_eq!(saved.name, "le guin");
     assert_eq!(saved.status, "pending_confirmation");
-} 
+}
 
 #[tokio::test]
 async fn subscribe_returns_a_400_when_data_is_missing() {

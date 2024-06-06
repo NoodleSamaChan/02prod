@@ -1,8 +1,5 @@
+use crate::domain::{NewSubscriber, SubscriberEmail, SubscriberName};
 use crate::email_client::EmailClient;
-use crate::{
-    domain::{NewSubscriber, SubscriberEmail, SubscriberName},
-    email_client,
-};
 use actix_web::{
     web::{self},
     HttpResponse,

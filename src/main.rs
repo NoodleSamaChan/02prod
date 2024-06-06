@@ -1,9 +1,6 @@
-use sqlx::postgres::PgPoolOptions;
-use std::net::TcpListener;
-use zer02prod::email_client::EmailClient;
+use zer02prod::configuration::get_configuration;
 use zer02prod::startup::Application;
 use zer02prod::telemetry::{get_subscriber, init_subscriber};
-use zer02prod::{configuration::get_configuration, startup::run};
 
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
