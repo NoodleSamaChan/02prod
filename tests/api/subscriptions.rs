@@ -1,6 +1,5 @@
 use crate::helpers::spawn_app;
-use actix_web::body;
-use wiremock::matchers::{any, method, path};
+use wiremock::matchers::{method, path};
 use wiremock::{Mock, ResponseTemplate};
 
 #[tokio::test]

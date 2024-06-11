@@ -6,7 +6,7 @@ use tracing_subscriber::{layer::SubscriberExt, EnvFilter, Registry};
 
 pub fn get_subscriber<Sink>(
     name: String,
-    env_filter: String,
+    _env_filter: String,
     sink: Sink,
 ) -> impl Subscriber + Send + Sync
 where
