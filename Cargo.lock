@@ -3538,6 +3538,7 @@ name = "zer02prod"
 version = "0.1.0"
 dependencies = [
  "actix-web",
+ "anyhow",
  "cargo-chef",
  "chrono",
  "claims",
@@ -3554,6 +3555,7 @@ dependencies = [
  "serde-aux",
  "serde_json",
  "sqlx",
+ "thiserror",
  "tokio",
  "tracing",
  "tracing-actix-web",
