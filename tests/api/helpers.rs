@@ -1,12 +1,12 @@
-use actix_web::test;
 use once_cell::sync::Lazy;
-use sha3::Digest;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use uuid::Uuid;
 use wiremock::MockServer;
 use zer02prod::configuration::{get_configuration, DatabaseSettings};
 use zer02prod::startup::{get_connection_pool, Application};
 use zer02prod::telemetry::{get_subscriber, init_subscriber};
+use argon2::password_hash::SaltString;
+use argon2::{Argon2, PasswordHasher};
 
 static TRACING: Lazy<()> = Lazy::new(|| {
     let default_filter_level = "info".to_string();
@@ -30,7 +30,7 @@ pub struct TestApp {
     pub port: u16,
     pub db_pool: PgPool,
     pub email_server: MockServer,
-    test_user: TestUser
+    test_user: TestUser,
 }
 
 impl TestApp {
@@ -132,7 +132,7 @@ pub async fn spawn_app() -> TestApp {
         port: application_port,
         db_pool: get_connection_pool(&configuration.database),
         email_server,
-        test_user: TestUser::generate()
+        test_user: TestUser::generate(),
     };
 
     test_app.test_user.store(&test_app.db_pool).await;
@@ -155,9 +155,12 @@ impl TestUser {
     }
 
     async fn store(&self, pool: &PgPool) {
-        let password_hash = sha3::Sha3_256::digest(self.password.as_bytes());
-        let password_hash = format!("{:x}", password_hash);
-        sqlx::query!(  
+        let salt = SaltString::generate(&mut rand::thread_rng());
+        let password_hash = Argon2::default()
+            .hash_password(self.password.as_bytes(), &salt)
+            .unwrap()
+            .to_string();
+        sqlx::query!(
             "INSERT INTO users (user_id, username, password_hash)
             VALUES ($1, $2, $3)",
             self.user_id,

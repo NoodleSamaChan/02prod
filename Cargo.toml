@@ -33,7 +33,7 @@ rand = { version = "0.8", features=["std_rng"] }
 thiserror = "1.0.24"
 anyhow = "1.0.40"
 base64 = "0.21.0"
-sha3 = "0.9"
+argon2 = { version = "0.4", features = ["std"] }
 
 [dev-dependencies]
 claims = "0.7"
