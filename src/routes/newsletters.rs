@@ -1,14 +1,60 @@
-use crate::authentication::{validate_credentials, AuthError, Credentials};
-use crate::domain::SubscriberEmail;
+use crate::authentication::{validate_credentials, Credentials};
 use crate::email_client::EmailClient;
 use crate::routes::error_chain_fmt;
-use actix_web::http::header::{HeaderMap, HeaderValue};
-use actix_web::http::{header, StatusCode};
+use crate::{authentication::AuthError, domain::SubscriberEmail};
+use actix_web::http::{
+    header::{HeaderMap, HeaderValue},
+    StatusCode,
+};
 use actix_web::{web, HttpRequest, HttpResponse, ResponseError};
 use anyhow::Context;
 use base64::Engine;
 use secrecy::Secret;
 use sqlx::PgPool;
+
+#[derive(serde::Deserialize)]
+pub struct BodyData {
+    title: String,
+    content: Content,
+}
+
+#[derive(serde::Deserialize)]
+pub struct Content {
+    html: String,
+    text: String,
+}
+
+pub fn basic_authentication(headers: &HeaderMap) -> Result<Credentials, anyhow::Error> {
+    // The header value, if present, must be a valid UTF8 string
+    let header_value = headers
+        .get("Authorization")
+        .context("The 'Authorization' header was missing")?
+        .to_str()
+        .context("The 'Authorization' header was not a valid UTF8 string.")?;
+    let base64encoded_credentials = header_value
+        .strip_prefix("Basic ")
+        .context("The authorization scheme was not 'Basic'.")?;
+    let decoded_credentials = base64::engine::general_purpose::STANDARD
+        .decode(base64encoded_credentials)
+        .context("Failed to base64-decode 'Basic' credentials.")?;
+    let decoded_credentials = String::from_utf8(decoded_credentials)
+        .context("The decoded credential string is valid UTF8.")?;
+
+    let mut credentials = decoded_credentials.splitn(2, ':');
+    let username = credentials
+        .next()
+        .ok_or_else(|| anyhow::anyhow!("A username must be provided in 'Basic' auth."))?
+        .to_string();
+    let password = credentials
+        .next()
+        .ok_or_else(|| anyhow::anyhow!("A password must be provided in 'Basic' auth."))?
+        .to_string();
+
+    Ok(Credentials {
+        username,
+        password: Secret::new(password),
+    })
+}
 
 #[derive(thiserror::Error)]
 pub enum PublishError {
@@ -35,7 +81,7 @@ impl ResponseError for PublishError {
                 let header_value = HeaderValue::from_str(r#"Basic realm="publish""#).unwrap();
                 response
                     .headers_mut()
-                    .insert(header::WWW_AUTHENTICATE, header_value);
+                    .insert(actix_web::http::header::WWW_AUTHENTICATE, header_value);
                 response
             }
         }
@@ -43,7 +89,7 @@ impl ResponseError for PublishError {
 }
 
 #[tracing::instrument(
-    name = "Publish a newsletter issue",
+name = "Publish a newsletter issue", 
     skip(body, pool, email_client, request),
     fields(username=tracing::field::Empty, user_id=tracing::field::Empty)
 )]
@@ -61,7 +107,9 @@ pub async fn publish_newsletter(
             AuthError::InvalidCredentials(_) => PublishError::AuthError(e.into()),
             AuthError::UnexpectedError(_) => PublishError::UnexpectedError(e.into()),
         })?;
+
     tracing::Span::current().record("user_id", &tracing::field::display(&user_id));
+
     let subscribers = get_confirmed_subscribers(&pool).await?;
     for subscriber in subscribers {
         match subscriber {
@@ -82,56 +130,12 @@ pub async fn publish_newsletter(
                 tracing::warn!(
                     error.cause_chain = ?error,
                     "Skipping a confirmed subscriber. \
-                    Their stored contect details are invalid",
-                )
+                    Their stored contact details are invalid",
+                );
             }
         }
     }
     Ok(HttpResponse::Ok().finish())
-}
-
-fn basic_authentication(headers: &HeaderMap) -> Result<Credentials, anyhow::Error> {
-    let header_value = headers
-        .get("Authorization")
-        .context("The 'Authorization' header was missing")?
-        .to_str()
-        .context("The 'Authorization' header was not a valid UTF8 string.")?;
-    let base64encoded_segment = header_value
-        .strip_prefix("Basic ")
-        .context("The authorization scheme was not 'Basic'.")?;
-    let decoded_bytes = base64::engine::general_purpose::STANDARD
-        .decode(base64encoded_segment)
-        .context("Failed to base64-decode 'Basic' credentials.")?;
-    let decoded_credentials = String::from_utf8(decoded_bytes)
-        .context("The decoded credential string is not valid UTF8.")?;
-
-    //Split the 2 segments using :
-    let mut credentials = decoded_credentials.splitn(2, ':');
-    let username = credentials
-        .next()
-        .ok_or_else(|| anyhow::anyhow!("A username must be provided in 'Basic' auth."))?
-        .to_string();
-    let password = credentials
-        .next()
-        .ok_or_else(|| anyhow::anyhow!("A password must be provided in 'Basic' auth."))?
-        .to_string();
-
-    Ok(Credentials {
-        username,
-        password: Secret::new(password),
-    })
-}
-
-#[derive(serde::Deserialize)]
-pub struct BodyData {
-    title: String,
-    content: Content,
-}
-
-#[derive(serde::Deserialize)]
-pub struct Content {
-    html: String,
-    text: String,
 }
 
 struct ConfirmedSubscriber {
@@ -142,7 +146,7 @@ struct ConfirmedSubscriber {
 async fn get_confirmed_subscribers(
     pool: &PgPool,
 ) -> Result<Vec<Result<ConfirmedSubscriber, anyhow::Error>>, anyhow::Error> {
-    let rows = sqlx::query!(
+    let confirmed_subscribers = sqlx::query!(
         r#"
         SELECT email
         FROM subscriptions
@@ -150,13 +154,12 @@ async fn get_confirmed_subscribers(
         "#,
     )
     .fetch_all(pool)
-    .await?;
-    let confirmed_subscribers = rows
-        .into_iter()
-        .map(|r| match SubscriberEmail::parse(r.email) {
-            Ok(email) => Ok(ConfirmedSubscriber { email }),
-            Err(error) => Err(anyhow::anyhow!(error)),
-        })
-        .collect();
+    .await?
+    .into_iter()
+    .map(|r| match SubscriberEmail::parse(r.email) {
+        Ok(email) => Ok(ConfirmedSubscriber { email }),
+        Err(error) => Err(anyhow::anyhow!(error)),
+    })
+    .collect();
     Ok(confirmed_subscribers)
 }

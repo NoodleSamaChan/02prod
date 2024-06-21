@@ -5,7 +5,7 @@ pub struct SubscriberName(String);
 
 impl SubscriberName {
     /// Returns an instance of `SubscriberName` if the input satisfies all
-    /// our validation constraints on subscriber names.  
+    /// our validation constraints on subscriber names.
     /// It panics otherwise.
     pub fn parse(s: String) -> Result<SubscriberName, String> {
         // `.trim()` returns a view over the input `s` without trailing
